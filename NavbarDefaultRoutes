@@ -1,0 +1,102 @@
+import { v4 as uuid } from "uuid";
+
+const NavbarDefault = [
+  {
+    id: uuid(),
+    menuitem: "Dashboard",
+    link: "/dashboard",
+    roles: ["SysAdmin"],
+  },
+  {
+    id: uuid(),
+    menuitem: "Services",
+    link: "/autoservices",
+    roles: ["SysAdmin", "OrgAdmin", "OrgMember", "Customer", "Blogger"],
+  },
+  {
+    id: uuid(),
+    menuitem: "Bundles",
+    link: "/packages",
+    roles: ["SysAdmin", "OrgAdmin", "OrgMember", "Customer", "Blogger"],
+  },
+  {
+    id: uuid(),
+    menuitem: "Prices",
+    link: "/pricings",
+    roles: ["SysAdmin", "OrgAdmin", "OrgMember", "Customer", "Blogger"],
+  },
+  {
+    id: uuid(),
+    menuitem: "Subscribe",
+    link: "/subscribe",
+    roles: ["Customer"],
+  },
+  {
+    id: uuid(),
+    menuitem: "Schedules",
+    link: "/schedules/view",
+    roles: ["OrgAdmin"],
+  },
+  {
+    id: uuid(),
+    menuitem: "Appointments",
+    link: "/appointments",
+    roles: ["SysAdmin", "OrgAdmin", "Customer"],
+  },
+  {
+    id: uuid(),
+    menuitem: "Auto Repair Shops",
+    link: "/organizations",
+    roles: ["SysAdmin", "OrgAdmin", "Customer"],
+  },
+  {
+    id: uuid(),
+    menuitem: "Advertisements",
+    link: "/advertisementsPublic",
+    roles: ["SysAdmin", "OrgAdmin", "OrgMember", "Customer", "Blogger"],
+  },
+  {
+    id: uuid(),
+    menuitem: "Comments",
+    link: "/comments",
+    roles: ["SysAdmin", "OrgAdmin", "OrgMember", "Customer", "Blogger"],
+  },
+  {
+    id: uuid(),
+    menuitem: "Dashboard",
+    link: "/dashboard/user",
+    roles: ["SysAdmin", "Customer"],
+  },
+  {
+    id: uuid(),
+    menuitem: "Blogs",
+    link: "/blogs",
+    roles: ["SysAdmin", "OrgAdmin", "OrgMember", "Customer", "Blogger"],
+  },
+  {
+    id: uuid(),
+    menuitem: "Organization Dashboard",
+    link: "/organizations/OrganizationDashboard",
+    roles: ["SysAdmin", "OrgAdmin"],
+  },
+  {
+    id: uuid(),
+    menuitem: "Invite Members",
+    link: "/invite",
+    roles: ["OrgAdmin"],
+  },
+  {
+    id: uuid(),
+    menuitem: "Newsletter Subscriptions",
+    link: "/newsletters",
+    roles: ["Customer"],
+  },
+  {
+    id: uuid(),
+    menuitem: "Newsletter Subscriptions",
+    link: "/admin/newsletters",
+    roles: ["SysAdmin"],
+  },
+];
+
+export default NavbarDefault;
