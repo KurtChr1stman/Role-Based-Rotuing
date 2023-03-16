@@ -1,0 +1,390 @@
+import React, { Fragment, useState } from "react";
+import PropTypes from "prop-types";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  Row,
+  Col,
+  Image,
+  Navbar,
+  Nav,
+  Container,
+  Dropdown,
+  ListGroup,
+  OverlayTrigger,
+  Tooltip,
+} from "react-bootstrap";
+import { useMediaQuery } from "react-responsive";
+import "simplebar/dist/simplebar.min.css";
+import DotBadge from "../../dashboard/navbars/utils/DotBadge";
+import Logo from "assets/images/png/reparrot_logo.png";
+import Avatar1 from "assets/images/avatar/avatar-1.jpg";
+import NavbarDefaultRoutes from "./NavbarDefaultRoutes";
+import NavbarAnonymous from "./navBarAnonymousRoutes.js";
+import NavDropdownMain from "layouts/marketing/navbars/NavDropdownMain";
+import * as messageService from "../../../services/messageService";
+import { useEffect } from "react";
+import toastr from "toastr";
+import InfiniteScroll from "react-infinite-scroll-component";
+
+const NavbarDefault = ({ headerstyle, currentUser = {}, logout }) => {
+  const navigate = useNavigate();
+  const [chatNotifications, setChatNotifications] = useState({
+    chatNotifications: [],
+    chatNotificationsComponents: [],
+    totalCount: 0,
+    pageIndex: 0,
+    hasMore: true,
+  });
+  let hasFired = false;
+
+  const [navBar, setNavBar] = useState({
+    arrayOfNavBarItems: [],
+  });
+
+  useEffect(() => {
+    if (currentUser.id && !hasFired) {
+      messageService
+        .getMessagesAsRecipient(currentUser.id, chatNotifications.pageIndex, 5)
+        .then(onGetMessagesSuccess)
+        .catch(onGetMessagesError);
+      hasFired = true;
+    }
+  }, [currentUser?.id]);
+
+  useEffect(() => {
+    setNavBar((prevState) => {
+      const navBar = { ...prevState };
+      navBar.arrayOfNavBarItems = renderNavLinks();
+      return navBar;
+    });
+  }, [currentUser?.isLoggedIn]);
+
+  const renderNavLinks = () => {
+    const currentRoutes = currentUser.isLoggedIn
+      ? NavbarDefaultRoutes
+      : NavbarAnonymous;
+    return currentRoutes.map(mapNavLink);
+  };
+
+  const mapNavLink = (item, index) => {
+    if (
+      currentUser.isLoggedIn === true &&
+      item?.roles?.includes(currentUser.roles[0])
+    ) {
+      if (item.children === undefined) {
+        return (
+          <Nav.Link key={index} as={Link} to={item.link}>
+            {item.menuitem}
+          </Nav.Link>
+        );
+      } else {
+        return (
+          <NavDropdownMain
+            item={item}
+            key={index}
+            onClick={(value) => setExpandedMenu(value)}
+          />
+        );
+      }
+    } else if (currentUser.isLoggedIn === false) {
+      return (
+        <Nav.Link key={index} as={Link} to={item.link}>
+          {item.menuitem}
+        </Nav.Link>
+      );
+    }
+  };
+
+  const fetchMoreData = () => {
+    let tempIdx = chatNotifications.pageIndex + 1;
+    messageService
+      .getMessagesAsRecipient(currentUser.id, tempIdx, 5)
+      .then(onGetMessagesSuccess)
+      .catch(onGetMessagesError);
+  };
+
+  const onGetMessagesSuccess = (res) => {
+    setChatNotifications((prevState) => {
+      let data = { ...prevState };
+      let prevComps = [...data.chatNotifications];
+      let chatData = prevComps.concat(res.item.pagedItems);
+      let filteredByUnread = chatData.filter(
+        (obj) => obj.dateRead === "0001-01-01T00:00:00"
+      );
+      data.totalCount = res.item.totalCount;
+      data.pageIndex = res.item.pageIndex;
+      data.hasMore = res.item.hasNextPage;
+      data.chatNotifications = filteredByUnread;
+      data.chatNotificationsComponents =
+        filteredByUnread.map(mapChatNotifications);
+      return data;
+    });
+  };
+
+  const onGetMessagesError = (err) => {
+    if (err.response.status === 500) {
+      toastr.error("Something went wrong...");
+    }
+  };
+
+  const isLogin = currentUser?.isLoggedIn;
+  const isDesktop = useMediaQuery({
+    query: "(min-width: 1224px)",
+  });
+  const isLaptop = useMediaQuery({
+    query: "(min-width: 1024px)",
+  });
+
+  const [expandedMenu, setExpandedMenu] = useState(false);
+
+  const mapChatNotifications = (item, index) => {
+    return (
+      <ListGroup.Item className={index === 0 ? "bg-light" : ""} key={index}>
+        <Row>
+          <Col>
+            <div className="d-flex">
+              <Image
+                src={item.senderData.avatarUrl}
+                alt=""
+                className="avatar-md rounded-circle"
+              />
+              <div className="ms-3">
+                <h5 className="fw-bold mb-1">{item.senderData.name}</h5>
+                <p className="mb-3">{item.messageBody}</p>
+                <span className="fs-6 text-muted">
+                  <span>
+                    <span className="fe fe-thumbs-up text-success me-1"></span>
+                    {item.dateSent.split("T", 1)}
+                  </span>
+                </span>
+              </div>
+            </div>
+          </Col>
+          <Col className="col-auto text-center me-2">
+            <OverlayTrigger
+              key="top"
+              placement="top"
+              overlay={<Tooltip id="tooltip-top">Mark as unread</Tooltip>}
+            >
+              <Link to="#">
+                <DotBadge bg="secondary"></DotBadge>
+              </Link>
+            </OverlayTrigger>
+          </Col>
+        </Row>
+      </ListGroup.Item>
+    );
+  };
+
+  const QuickMenu = () => {
+    return (
+      <Fragment>
+        <Dropdown
+          as={Nav.Item}
+          className={`${isDesktop || isLaptop ? "mt-2 me-0" : "mt-2 me-2"}`}
+        >
+          <Dropdown.Toggle
+            as={Nav.Link}
+            bsPrefix="dt"
+            className="text-dark icon-notifications me-lg-1  btn btn-light btn-icon rounded-circle indicator indicator-primary text-muted"
+            id="dropdownNotification"
+          >
+            <i className="fe fe-bell"></i>
+          </Dropdown.Toggle>
+          <Dropdown.Menu
+            show={isDesktop ? true : false}
+            className="dashboard-dropdown notifications-dropdown dropdown-menu-lg dropdown-menu-end mt-4 py-0"
+            aria-labelledby="dropdownNotification"
+            align="end"
+          >
+            <div className="border-bottom px-3 pt-3 pb-3 d-flex justify-content-between align-items-end">
+              <span className="h4 mb-0">Notifications</span>
+              <Link to="# " className="text-muted">
+                <span className="align-middle">
+                  <i className="fe fe-settings me-1"></i>
+                </span>
+              </Link>
+            </div>
+            <InfiniteScroll
+              dataLength={chatNotifications.chatNotificationsComponents.length}
+              next={fetchMoreData}
+              hasMore={chatNotifications.hasMore}
+              loader={<h4 className="p-1">Loading...</h4>}
+              height={300}
+              scrollThreshold={0.98}
+              endMessage={
+                <p className="p-1">
+                  <b>End of notifications</b>
+                </p>
+              }
+            >
+              <ListGroup variant="flush">
+                {chatNotifications.chatNotificationsComponents}
+              </ListGroup>
+            </InfiniteScroll>
+            <div className="border-top px-3 pt-3 pb-3">
+              <Link
+                to="/authentication/notifications"
+                className="text-link fw-semi-bold"
+              >
+                See all Notifications
+              </Link>
+            </div>
+          </Dropdown.Menu>
+        </Dropdown>
+
+        <Dropdown as={Nav.Item}>
+          <Dropdown.Toggle
+            as={Nav.Link}
+            bsPrefix="dt"
+            className="rounded-circle border-bottom-0"
+            id="dropdownUser"
+          >
+            <div className="avatar avatar-md avatar-indicators avatar-online">
+              <Image
+                alt="avatar"
+                src={`${
+                  currentUser.avatarUrl ? currentUser.avatarUrl : Avatar1
+                }`}
+                className="rounded-circle"
+              />
+            </div>
+          </Dropdown.Toggle>
+          <Dropdown.Menu
+            show={isDesktop ? true : false}
+            className="dashboard-dropdown dropdown-menu-end mt-4 py-0"
+            aria-labelledby="dropdownUser"
+            align="end"
+          >
+            <Dropdown.Item className="mt-3">
+              <div className="d-flex">
+                <div className="avatar avatar-md avatar-indicators avatar-online">
+                  <Image
+                    alt="avatar"
+                    src={`${
+                      currentUser.avatarUrl ? currentUser.avatarUrl : Avatar1
+                    }`}
+                    className="rounded-circle"
+                  />
+                </div>
+                <div className="ms-3 lh-1">
+                  <h5 className="mb-1">
+                    {currentUser.firstName ? currentUser.firstName : "User"}{" "}
+                    {currentUser.lastName ? currentUser.lastName : "User"}
+                  </h5>
+                  <p className="mb-0 text-muted">{currentUser.email}</p>
+                </div>
+              </div>
+            </Dropdown.Item>
+            <Dropdown.Divider />
+            <Dropdown.Item eventKey="2">
+              <i className="fe fe-user me-2"></i> Profile
+            </Dropdown.Item>
+            <Dropdown.Item eventKey="3" onClick={() => navigate("/organizations/OrganizationDashboard")}>
+              <i className="fe fe-book-open me-2"></i>
+              Dashboard
+            </Dropdown.Item>
+            <Dropdown.Item>
+              <i className="fe fe-settings me-2"></i> Settings
+            </Dropdown.Item>
+            <Dropdown.Divider />
+            <Dropdown.Item className="mb-3" onClick={logout}>
+              <i className="fe fe-power me-2"></i> Sign Out
+            </Dropdown.Item>
+          </Dropdown.Menu>
+        </Dropdown>
+      </Fragment>
+    );
+  };
+  return (
+    <Fragment>
+      <Navbar
+        onToggle={(collapsed) => setExpandedMenu(collapsed)}
+        expanded={expandedMenu}
+        expand="lg"
+        className={`${isLogin ? "bg-white" : ""} navbar p-2 ${
+          headerstyle === "dark" ? "navbar-dark bg-dark" : "navbar-default py-2"
+        }`}
+      >
+        <Container fluid className="px-0 ps-2">
+          <Navbar.Brand as={Link} to="/">
+            <Image
+              style={{ width: 112, height: 50, objectFit: "cover" }}
+              src={Logo}
+              alt=""
+            />
+          </Navbar.Brand>
+          <div
+            className={`navbar-nav navbar-right-wrap ms-auto d-lg-none nav-top-wrap ${
+              isLogin ? (isDesktop || isLaptop ? "d-none" : "d-flex") : "d-none"
+            }`}
+          >
+            <QuickMenu />
+          </div>
+          <Navbar.Toggle aria-controls="basic-navbar-nav">
+            <span className="icon-bar top-bar mt-0"></span>
+            <span className="icon-bar middle-bar"></span>
+            <span className="icon-bar bottom-bar"></span>
+          </Navbar.Toggle>
+          <Navbar.Collapse id="basic-navbar-nav">
+            <Nav>{renderNavLinks(navBar)}</Nav>
+            <Nav className="navbar-nav navbar-right-wrap ms-auto d-flex nav-top-wrap">
+              <span
+                className={`ms-auto mt-3 mt-lg-0  ${isLogin ? "d-none" : ""}`}
+              >
+                <Nav.Link
+                  as={Link}
+                  to="/login"
+                  bsPrefix="btn"
+                  className="btn btn-white shadow-sm me-2"
+                >
+                  Sign In
+                </Nav.Link>
+                <Nav.Link
+                  as={Link}
+                  to="/register"
+                  bsPrefix="btn"
+                  className="btn btn-primary shadow-sm"
+                >
+                  Sign Up
+                </Nav.Link>
+              </span>
+              <span
+                className={`${
+                  isLogin
+                    ? isDesktop || isLaptop
+                      ? "d-flex"
+                      : "d-none"
+                    : "d-none"
+                }`}
+              >
+                <QuickMenu />
+              </span>
+            </Nav>
+          </Navbar.Collapse>
+        </Container>
+      </Navbar>
+    </Fragment>
+  );
+};
+
+NavbarDefault.defaultProps = {
+  headerstyle: "navbar-default",
+  login: false,
+};
+
+NavbarDefault.propTypes = {
+  currentUser: PropTypes.shape({
+    id: PropTypes.number,
+    roles: PropTypes.arrayOf(PropTypes.string),
+    email: PropTypes.string,
+    firstName: PropTypes.string,
+    lastName: PropTypes.string,
+    avatarUrl: PropTypes.string,
+    isLoggedIn: PropTypes.bool,
+  }).isRequired,
+  headerstyle: PropTypes.string.isRequired,
+  logout: PropTypes.func.isRequired,
+};
+
+export default NavbarDefault;
